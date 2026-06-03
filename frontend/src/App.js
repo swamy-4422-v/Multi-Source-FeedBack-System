@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 
 // Uses empty string to fully utilize the package.json proxy target in development
-const API = '';
+const API = process.env.REACT_APP_API_URL || '';
 
 // ── colour helpers ────────────────────────────────────────
 const SENTIMENT_COLOR = { positive: '#22c55e', negative: '#ef4444', neutral: '#94a3b8' };
