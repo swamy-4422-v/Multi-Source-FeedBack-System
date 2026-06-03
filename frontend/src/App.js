@@ -4,7 +4,9 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-const API = 'https://multi-source-feedback-system-backend.onrender.com';
+// Uses empty string to fully utilize the package.json proxy target in development
+const API ='https://multi-source-feedback-system-backend.onrender.com';
+
 // ── colour helpers ────────────────────────────────────────
 const SENTIMENT_COLOR = { positive: '#22c55e', negative: '#ef4444', neutral: '#94a3b8' };
 const CATEGORY_COLORS = {

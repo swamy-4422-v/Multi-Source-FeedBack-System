@@ -1,0 +1,28 @@
+# ── SECRETS AND CONFIG ────────────────────────────────────
+.env
+.env.bak
+*.env
+
+# ── PYTHON CACHE AND SYSTEM BUILDS ────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# ── VIRTUAL ENVIRONMENTS ──────────────────────────────────
+.venv/
+venv/
+ENV/
+env/
+
+# ── NODE / FRONTEND DEPENDENCIES ──────────────────────────
+node_modules/
+frontend/node_modules/
+/frontend/build
+.eslintcache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
