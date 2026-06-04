@@ -34,10 +34,7 @@ app = FastAPI(
 # ── CORS Middleware Update ────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://multi-source-feedback-system.vercel.app"  # Added production frontend
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
