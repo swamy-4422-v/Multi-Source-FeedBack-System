@@ -31,9 +31,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# ── CORS Middleware Update ────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],           # tighten in production environments
+    allow_origins=[
+        "http://localhost:3000",
+        "https://multi-source-feedback-system.vercel.app"  # Added production frontend
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -207,7 +211,6 @@ def get_alerts(
             "message": a.message,
             "created_at": a.created_at.isoformat(),
         }
-        for a in alerts
     ]
 
 
@@ -233,5 +236,3 @@ def ingest_batch(
             task_ids.append(task.id)
 
     return {"status": "queued", "count": len(task_ids), "task_ids": task_ids[:10]}
-
-
