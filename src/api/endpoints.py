@@ -4,7 +4,7 @@ FastAPI application — all REST endpoints.
 Run with:
     uvicorn src.api.endpoints:app --reload --port 8000
 """
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ import datetime
 import logging
 
 from src.database import get_db, init_db, Feedback, TrendAlert
+# Importing the synchronous worker logic directly to execute on local free threads
 from src.tasks import process_feedback
 from src.api.middleware import LoggingMiddleware, RateLimitMiddleware, require_api_key
 from src.intelligence.trend_detector import get_category_stats
@@ -31,10 +32,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# ── CORS Middleware Update ────────────────────────────────
+# ── CORS Middleware Configuration ─────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://multi-source-feedback-system.vercel.app"  # Production web UI URL
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,16 +90,19 @@ def health():
 @app.post("/feedback", tags=["feedback"], response_model=dict)
 def submit_feedback(
     payload: FeedbackIn,
+    background_tasks: BackgroundTasks,  # Integrated FastAPI free background threads
     db: Session = Depends(get_db),
     _: None = Depends(require_api_key),
 ):
     """
-    Submit a single feedback item for async processing.
-    Returns a task ID — check /feedback for results after a few seconds.
+    Submit a single feedback item for async processing via free background tasks.
+    Bypasses the Celery paid worker constraint on Render completely.
     """
-    task = process_feedback.delay(payload.text, source=payload.source)
-    logger.info(f"[API] Queued feedback task {task.id}")
-    return {"status": "queued", "task_id": task.id}
+    # Spawns a background worker thread locally inside the free tier web app instance
+    background_tasks.add_task(process_feedback, raw_text=payload.text, source=payload.source)
+    
+    logger.info("[API] Queued feedback task locally via BackgroundTasks threads.")
+    return {"status": "queued", "message": "Processing started successfully"}
 
 
 @app.get("/feedback", tags=["feedback"])
@@ -208,17 +215,19 @@ def get_alerts(
             "message": a.message,
             "created_at": a.created_at.isoformat(),
         }
+        for a in alerts
     ]
 
 
 @app.post("/ingest/batch", tags=["ingestion"])
 def ingest_batch(
     payload: dict,
+    background_tasks: BackgroundTasks,  # Integrated for free batch threads as well
     _: None = Depends(require_api_key),
 ):
     """
     Batch ingest endpoint — accepts {"items": ["text1", "text2", ...]}
-    Queues each item as a separate Celery task.
+    Queues each item via free local background threads.
     """
     items = payload.get("items", [])
     if not isinstance(items, list) or len(items) == 0:
@@ -226,10 +235,10 @@ def ingest_batch(
     if len(items) > 500:
         raise HTTPException(status_code=400, detail="Maximum 500 items per batch")
 
-    task_ids = []
+    count = 0
     for text in items:
         if isinstance(text, str) and text.strip():
-            task = process_feedback.delay(text, source="batch")
-            task_ids.append(task.id)
+            background_tasks.add_task(process_feedback, raw_text=text, source="batch")
+            count += 1
 
-    return {"status": "queued", "count": len(task_ids), "task_ids": task_ids[:10]}
+    return {"status": "queued", "count": count, "message": "Batch ingestion processing started"}
