@@ -39,7 +39,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Skip health check endpoints
-        if request.url.path in ("/health", "/api/dashboard/stats", "/api/dashboard/feedback"):
+        if request.url.path in ("/health", "/stats", "/feedback", "/report", "/alerts"):
             return await call_next(request)
 
         client_ip = request.client.host if request.client else "unknown"
